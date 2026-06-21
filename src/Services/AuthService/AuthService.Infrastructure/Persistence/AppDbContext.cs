@@ -17,6 +17,9 @@ public class AppDbContext : DbContext
             entity.Property(u => u.Email).IsRequired().HasMaxLength(256);
             entity.Property(u => u.FullName).IsRequired().HasMaxLength(200);
             entity.Property(u => u.PasswordHash).IsRequired();
+            entity.Property(u => u.PhoneNumber).HasMaxLength(20);
+            entity.Property(u => u.ProfileImageUrl).HasMaxLength(500);
+            entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>
