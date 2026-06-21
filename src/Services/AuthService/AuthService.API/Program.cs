@@ -1,6 +1,7 @@
 using AuthService.Application.Interfaces;
 using AuthService.Infrastructure.Persistence;
 using AuthService.Infrastructure.Repositories;
+using AuthService.Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,10 @@ builder.Services.AddMediatR(cfg =>
 
 // Repository baðlantýsý (interface -> gerçek implementasyon)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 // Controller desteði
 builder.Services.AddControllers();
