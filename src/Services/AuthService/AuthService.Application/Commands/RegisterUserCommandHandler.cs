@@ -7,10 +7,12 @@ namespace AuthService.Application.Commands;
 public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Guid>
 {
     private readonly IUserRepository _userRepository;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public RegisterUserCommandHandler(IUserRepository userRepository)
+    public RegisterUserCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<Guid> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -21,7 +23,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, G
             throw new InvalidOperationException("Bu email zaten kayýtlý.");
         }
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        var passwordHash = _passwordHasher.Hash(request.Password);
 
         var user = new User(request.Email, passwordHash, request.FullName);
 
