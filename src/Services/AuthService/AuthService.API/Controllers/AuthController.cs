@@ -1,6 +1,8 @@
 using AuthService.Application.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
 
 namespace AuthService.API.Controllers;
 
@@ -23,6 +25,11 @@ public class AuthController : ControllerBase
             var userId = await _mediator.Send(command);
             return Ok(new { id = userId, message = "Kayýt baþarýlý." });
         }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => e.ErrorMessage);
+            return BadRequest(new { errors });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -30,12 +37,18 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("LoginPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
         try
         {
             var token = await _mediator.Send(command);
             return Ok(new { token });
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => e.ErrorMessage);
+            return BadRequest(new { errors });
         }
         catch (UnauthorizedAccessException ex)
         {
