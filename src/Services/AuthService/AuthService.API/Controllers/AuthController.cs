@@ -42,8 +42,26 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var token = await _mediator.Send(command);
-            return Ok(new { token });
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = ex.Errors.Select(e => e.ErrorMessage);
+            return BadRequest(new { errors });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand command)
+    {
+        try
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
         catch (FluentValidation.ValidationException ex)
         {
