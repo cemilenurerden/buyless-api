@@ -5,6 +5,7 @@ using AuthService.Infrastructure.Services;
 using MediatR;
 using FluentValidation;
 using AuthService.Application.Behaviors;
+using AuthService.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,11 +13,11 @@ using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Veritabaný baðlantýsý
+// Veritabanï¿½ baï¿½lantï¿½sï¿½
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// MediatR (Command/Query iþleyicileri)
+// MediatR (Command/Query iï¿½leyicileri)
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(AuthService.Application.Commands.RegisterUserCommand).Assembly));
 
@@ -24,13 +25,13 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(AuthService.Application.Commands.RegisterUserCommand).Assembly);
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-// Repository baðlantýsý (interface -> gerçek implementasyon)
+// Repository baï¿½lantï¿½sï¿½ (interface -> gerï¿½ek implementasyon)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-// Controller desteði
+// Controller desteï¿½i
 builder.Services.AddControllers();
 
 builder.Services.AddRateLimiter(options =>
@@ -51,6 +52,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
