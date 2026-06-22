@@ -20,57 +20,22 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
     {
-        try
-        {
-            var userId = await _mediator.Send(command);
-            return Ok(new { id = userId, message = "Kayýt baþarýlý." });
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            var errors = ex.Errors.Select(e => e.ErrorMessage);
-            return BadRequest(new { errors });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var userId = await _mediator.Send(command);
+        return Ok(new { id = userId, message = "KayÄ±t baÅŸarÄ±lÄ±." });
     }
 
     [HttpPost("login")]
     [EnableRateLimiting("LoginPolicy")]
     public async Task<IActionResult> Login([FromBody] LoginCommand command)
     {
-        try
-        {
-            var result = await _mediator.Send(command);
-            return Ok(result);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            var errors = ex.Errors.Select(e => e.ErrorMessage);
-            return BadRequest(new { errors });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
+        var result = await _mediator.Send(command);
+        return Ok(result);
     }
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand command)
     {
-        try
-        {
-            var result = await _mediator.Send(command);
-            return Ok(result);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            var errors = ex.Errors.Select(e => e.ErrorMessage);
-            return BadRequest(new { errors });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
+        var result = await _mediator.Send(command);
+        return Ok(result);
     }
 }
