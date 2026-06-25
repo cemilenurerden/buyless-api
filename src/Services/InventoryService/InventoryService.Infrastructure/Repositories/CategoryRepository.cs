@@ -37,4 +37,7 @@ public class CategoryRepository : ICategoryRepository
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> HasChildCategoriesAsync(int categoryId)
+        => await _context.Categories.AnyAsync(c => c.ParentCategoryId == categoryId);
 }
