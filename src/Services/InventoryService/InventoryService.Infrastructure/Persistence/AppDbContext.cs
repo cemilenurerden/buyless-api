@@ -1,5 +1,6 @@
 ﻿using InventoryService.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 
@@ -14,6 +15,20 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Item> Items => Set<Item>();
+    public DbSet<ItemWearLog> ItemWearLogs => Set<ItemWearLog>();
+    public DbSet<BarcodeProductCache> BarcodeProductCaches => Set<BarcodeProductCache>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Tüm DateTime alanları otomatik olarak UTC kabul edilsin.
+        // (Npgsql, "timestamp with time zone" kolonlarına Kind=Unspecified bir DateTime yazılmasına izin vermiyor;
+        // bu converter sayesinde her DateTime/DateTime? property için ayrı ayrı SpecifyKind çağırmaya gerek kalmıyor.)
+        configurationBuilder.Properties<DateTime>()
+            .HaveConversion<UtcDateTimeConverter>();
+
+        configurationBuilder.Properties<DateTime?>()
+            .HaveConversion<NullableUtcDateTimeConverter>();
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,5 +88,58 @@ public class AppDbContext : DbContext
                 .HasForeignKey(i => i.BrandId)
                 .OnDelete(DeleteBehavior.SetNull);     // Marka silinirse, Item'daki BrandId null'a düşsün
         });
+
+        // --- ItemWearLog ---
+        modelBuilder.Entity<ItemWearLog>(entity =>
+        {
+            entity.HasKey(w => w.Id);
+
+            // UserId burada da FK değil, sadece bir alan (mikroservis sınırı - AuthService'e referans yok).
+            entity.Property(w => w.UserId).IsRequired();
+
+            // ItemId gerçek bir FK, Items tablosuna bağlı.
+            // Cascade: bir Item silinirse (ileride silme özelliği eklenirse), o item'a ait
+            // tüm giyilme kayıtları da silinsin - log'lar item'sız anlamsız kalır.
+            entity.HasOne<Item>()
+                .WithMany()
+                .HasForeignKey(w => w.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- BarcodeProductCache ---
+        modelBuilder.Entity<BarcodeProductCache>(entity =>
+        {
+            // Bu tabloda auto-increment bir Id yok; Barcode'un kendisi Primary Key.
+            // Aynı barkod birden fazla kez cache'lenemez - varsa güncellenir (Refresh metodu ile).
+            entity.HasKey(b => b.Barcode);
+
+            entity.Property(b => b.Barcode).HasMaxLength(100);
+            entity.Property(b => b.ProductName).IsRequired().HasMaxLength(200);
+            entity.Property(b => b.BrandName).HasMaxLength(100);
+            entity.Property(b => b.CategoryHint).HasMaxLength(100);
+            entity.Property(b => b.ImageUrl).HasMaxLength(2000);
+
+            // Bu tablonun Items/Categories/Brands ile hiçbir FK ilişkisi yok - bağımsız bir cache tablosu.
+        });
+    }
+}
+
+public class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
+{
+    public UtcDateTimeConverter() : base(
+        v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+    {
+    }
+}
+
+public class NullableUtcDateTimeConverter : ValueConverter<DateTime?, DateTime?>
+{
+    public NullableUtcDateTimeConverter() : base(
+        v => v.HasValue
+            ? (v.Value.Kind == DateTimeKind.Utc ? v.Value : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+            : v,
+        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v)
+    {
     }
 }

@@ -18,6 +18,10 @@ public class ItemController : ControllerBase
         _mediator = mediator;
     }
 
+    /// <summary>
+    /// Giriş yapmış kullanıcının envanterine yeni bir eşya ekler.
+    /// UserId, client'tan alınmaz; JWT token içindeki kullanıcı kimliğinden otomatik okunur.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> AddItem([FromBody] AddItemCommand command)
     {
@@ -33,7 +37,39 @@ public class ItemController : ControllerBase
         command.UserId = userId;
 
         var itemId = await _mediator.Send(command);
-
         return CreatedAtAction(nameof(AddItem), new { id = itemId }, new { id = itemId });
     }
+
+    /// <summary>
+    /// Belirtilen eşya için bir giyilme kaydı (wear log) oluşturur ve eşyanın giyilme sayacını günceller.
+    /// Eşya, isteği gönderen kullanıcıya ait olmalıdır; aksi halde reddedilir.
+    /// </summary>
+    [HttpPost("{itemId}/wear")]
+    public async Task<IActionResult> RecordWear(Guid itemId, [FromBody] RecordWearRequest request)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? User.FindFirstValue("sub");
+
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        var command = new RecordWearCommand
+        {
+            ItemId = itemId,
+            UserId = userId,
+            WornDate = request.WornDate
+        };
+
+        var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+}
+
+/// <summary>
+/// RecordWear endpoint'i için istek gövdesi. Sadece giyilme tarihini içerir;
+/// ItemId route'tan, UserId ise JWT token'dan otomatik alınır.
+/// </summary>
+public class RecordWearRequest
+{
+    public DateTime WornDate { get; set; }
 }
