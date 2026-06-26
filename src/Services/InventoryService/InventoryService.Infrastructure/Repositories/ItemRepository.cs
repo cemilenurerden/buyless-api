@@ -17,6 +17,12 @@ public class ItemRepository : IItemRepository
     public async Task<Item?> GetByIdAsync(Guid id)
         => await _context.Items.FirstOrDefaultAsync(i => i.Id == id);
 
+    public async Task<List<Item>> GetByUserIdAsync(Guid userId)
+        => await _context.Items
+            .Where(i => i.UserId == userId)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+
     public async Task AddAsync(Item item)
     {
         await _context.Items.AddAsync(item);
@@ -26,9 +32,9 @@ public class ItemRepository : IItemRepository
     public async Task UpdateAsync(Item item)
     {
         // Item, GetByIdAsync ile çekildiği için zaten EF Core change tracker tarafından takip ediliyor.
-        // RecordWear() gibi domain metotları entity üzerinde değişiklik yaptığında,
-        // burada sadece SaveChangesAsync çağırmak EF Core'un bu değişiklikleri algılayıp
-        // gerekli UPDATE sorgusunu üretmesi için yeterli.
+        // Domain metotları (RecordWear, UpdateDetails, Donate, MarkAsSold, MarkAsRecycled) entity üzerinde
+        // değişiklik yaptığında, burada sadece SaveChangesAsync çağırmak EF Core'un bu değişiklikleri
+        // algılayıp gerekli UPDATE sorgusunu üretmesi için yeterli.
         await _context.SaveChangesAsync();
     }
 

@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using InventoryService.Application.Commands;
+using InventoryService.Application.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,19 @@ public class ItemController : ControllerBase
         _mediator = mediator;
     }
 
+    private bool TryGetUserId(out Guid userId)
+    {
+        userId = Guid.Empty;
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? User.FindFirstValue("sub");
+
+        if (userIdClaim is null)
+            return false;
+
+        return Guid.TryParse(userIdClaim, out userId);
+    }
+
     /// <summary>
     /// Giriş yapmış kullanıcının envanterine yeni bir eşya ekler.
     /// UserId, client'tan alınmaz; JWT token içindeki kullanıcı kimliğinden otomatik okunur.
@@ -25,19 +39,60 @@ public class ItemController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddItem([FromBody] AddItemCommand command)
     {
-        // UserId, client'tan ASLA güvenilir bilgi olarak alınmaz.
-        // JWT token imzalı olduğu için içindeki Sub/NameIdentifier claim'i taklit edilemez -
-        // bu yüzden UserId'yi buradan okuyup Command'e biz atıyoruz.
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                           ?? User.FindFirstValue("sub");
-
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
 
         command.UserId = userId;
 
         var itemId = await _mediator.Send(command);
-        return CreatedAtAction(nameof(AddItem), new { id = itemId }, new { id = itemId });
+        return CreatedAtAction(nameof(GetById), new { id = itemId }, new { id = itemId });
+    }
+
+    /// <summary>
+    /// Giriş yapmış kullanıcının tüm eşyalarını listeler (en yeni eklenen en üstte).
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        var items = await _mediator.Send(new GetUserItemsQuery { UserId = userId });
+        return Ok(items);
+    }
+
+    /// <summary>
+    /// Tek bir eşyayı, verilen ID'ye göre getirir. Eşya, isteği gönderen kullanıcıya ait olmalıdır.
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        var item = await _mediator.Send(new GetItemByIdQuery { Id = id, UserId = userId });
+
+        if (item is null)
+            return NotFound(new { message = "Belirtilen eşya bulunamadı." });
+
+        return Ok(item);
+    }
+
+    /// <summary>
+    /// Var olan bir eşyanın adını, rengini, bedenini, resmini, durumunu (Condition) veya notlarını günceller.
+    /// Eşya, isteği gönderen kullanıcıya ait olmalıdır.
+    /// </summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateItemCommand command)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        command.Id = id;
+        command.UserId = userId;
+
+        await _mediator.Send(command);
+        return NoContent();
     }
 
     /// <summary>
@@ -47,10 +102,7 @@ public class ItemController : ControllerBase
     [HttpPost("{itemId}/wear")]
     public async Task<IActionResult> RecordWear(Guid itemId, [FromBody] RecordWearRequest request)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                           ?? User.FindFirstValue("sub");
-
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
+        if (!TryGetUserId(out var userId))
             return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
 
         var command = new RecordWearCommand
@@ -62,6 +114,45 @@ public class ItemController : ControllerBase
 
         var result = await _mediator.Send(command);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Eşyayı "Donated" (bağışlandı) durumuna geçirir. Eşya zaten Active değilse reddedilir.
+    /// </summary>
+    [HttpPost("{id}/donate")]
+    public async Task<IActionResult> Donate(Guid id)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        await _mediator.Send(new DonateItemCommand { Id = id, UserId = userId });
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Eşyayı "Sold" (satıldı) durumuna geçirir. Eşya zaten Active değilse reddedilir.
+    /// </summary>
+    [HttpPost("{id}/sell")]
+    public async Task<IActionResult> Sell(Guid id)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        await _mediator.Send(new SellItemCommand { Id = id, UserId = userId });
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Eşyayı "Recycled" (geri dönüştürüldü) durumuna geçirir. Eşya zaten Active değilse reddedilir.
+    /// </summary>
+    [HttpPost("{id}/recycle")]
+    public async Task<IActionResult> Recycle(Guid id)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        await _mediator.Send(new RecycleItemCommand { Id = id, UserId = userId });
+        return NoContent();
     }
 }
 
