@@ -1,15 +1,17 @@
-using System.Text;
 using FluentValidation;
+using InventoryService.API.Middleware;
 using InventoryService.Application.Behaviors;
 using InventoryService.Application.Commands;
 using InventoryService.Application.Interfaces;
-using InventoryService.API.Middleware;
+using InventoryService.Infrastructure.ExternalServices;
 using InventoryService.Infrastructure.Persistence;
 using InventoryService.Infrastructure.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,14 @@ builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<IItemRepository, ItemRepository>();
 builder.Services.AddScoped<IItemWearLogRepository, ItemWearLogRepository>();
 builder.Services.AddScoped<IBarcodeProductCacheRepository, BarcodeProductCacheRepository>();
+
+
+// --- BudgetService Client (servisler arasý iletiþim) ---
+builder.Services.AddHttpClient<IBudgetServiceClient, BudgetServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5003/");
+});
+
 
 // --- JWT Authentication ---
 // AuthService token'ý imzalarken hangi Key/Issuer/Audience kullandýysa,

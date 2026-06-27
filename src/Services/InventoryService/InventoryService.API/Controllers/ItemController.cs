@@ -118,6 +118,7 @@ public class ItemController : ControllerBase
 
     /// <summary>
     /// Eşyayı "Donated" (bağışlandı) durumuna geçirir. Eşya zaten Active değilse reddedilir.
+    /// Bu işlem, BudgetService'e otomatik olarak bir bağış kaydı bildirir.
     /// </summary>
     [HttpPost("{id}/donate")]
     public async Task<IActionResult> Donate(Guid id)
@@ -125,20 +126,31 @@ public class ItemController : ControllerBase
         if (!TryGetUserId(out var userId))
             return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
 
-        await _mediator.Send(new DonateItemCommand { Id = id, UserId = userId });
+        var accessToken = Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+
+        await _mediator.Send(new DonateItemCommand { Id = id, UserId = userId, AccessToken = accessToken });
         return NoContent();
     }
 
     /// <summary>
     /// Eşyayı "Sold" (satıldı) durumuna geçirir. Eşya zaten Active değilse reddedilir.
+    /// Bu işlem, BudgetService'e otomatik olarak bir satış kaydı bildirir.
     /// </summary>
     [HttpPost("{id}/sell")]
-    public async Task<IActionResult> Sell(Guid id)
+    public async Task<IActionResult> Sell(Guid id, [FromBody] SellItemRequest request)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
 
-        await _mediator.Send(new SellItemCommand { Id = id, UserId = userId });
+        var accessToken = Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+
+        await _mediator.Send(new SellItemCommand
+        {
+            Id = id,
+            UserId = userId,
+            Amount = request.Amount,
+            AccessToken = accessToken
+        });
         return NoContent();
     }
 
@@ -163,4 +175,13 @@ public class ItemController : ControllerBase
 public class RecordWearRequest
 {
     public DateTime WornDate { get; set; }
+}
+
+/// <summary>
+/// Sell endpoint'i için istek gövdesi. Satış tutarı, BudgetService'e bildirim
+/// gönderirken kullanılır.
+/// </summary>
+public class SellItemRequest
+{
+    public decimal Amount { get; set; }
 }
