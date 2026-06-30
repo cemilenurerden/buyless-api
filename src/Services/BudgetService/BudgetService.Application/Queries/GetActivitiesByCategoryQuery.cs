@@ -3,8 +3,8 @@ using MediatR;
 
 namespace BudgetService.Application.Queries;
 
-public class GetUserActivitiesQuery : IRequest<List<BudgetActivity>>
+public class GetActivitiesByCategoryQuery : IRequest<List<BudgetActivity>>
 {
     public Guid UserId { get; set; }
-    public ActivityType? Type { get; set; }
+    public int CategoryId { get; set; }
 }

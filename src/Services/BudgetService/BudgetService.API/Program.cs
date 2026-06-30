@@ -1,15 +1,16 @@
-using System.Text;
-using FluentValidation;
+using BudgetService.API.Middleware;
 using BudgetService.Application.Behaviors;
 using BudgetService.Application.Commands;
 using BudgetService.Application.Interfaces;
-using BudgetService.API.Middleware;
+using BudgetService.Infrastructure.ExternalServices;
 using BudgetService.Infrastructure.Persistence;
 using BudgetService.Infrastructure.Repositories;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,12 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 
 // --- Repository'ler ---
 builder.Services.AddScoped<IBudgetActivityRepository, BudgetActivityRepository>();
+
+// --- InventoryService Client (kategori isimleri için) ---
+builder.Services.AddHttpClient<ICategoryLookupService, CategoryLookupService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5002/");
+});
 
 // --- JWT Authentication ---
 // AuthService token'ý imzalarken hangi Key/Issuer/Audience kullandýysa,
