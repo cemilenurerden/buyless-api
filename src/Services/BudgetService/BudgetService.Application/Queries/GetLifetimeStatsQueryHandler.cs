@@ -5,12 +5,12 @@ using MediatR;
 
 namespace BudgetService.Application.Queries;
 
-public class GetBudgetSummaryQueryHandler : IRequestHandler<GetBudgetSummaryQuery, BudgetSummaryDto>
+public class GetLifetimeStatsQueryHandler : IRequestHandler<GetLifetimeStatsQuery, LifetimeStatsDto>
 {
     private readonly IBudgetActivityRepository _activityRepository;
     private readonly ICategoryLookupService _categoryLookupService;
 
-    public GetBudgetSummaryQueryHandler(
+    public GetLifetimeStatsQueryHandler(
         IBudgetActivityRepository activityRepository,
         ICategoryLookupService categoryLookupService)
     {
@@ -18,20 +18,16 @@ public class GetBudgetSummaryQueryHandler : IRequestHandler<GetBudgetSummaryQuer
         _categoryLookupService = categoryLookupService;
     }
 
-    public async Task<BudgetSummaryDto> Handle(GetBudgetSummaryQuery request, CancellationToken cancellationToken)
+    public async Task<LifetimeStatsDto> Handle(GetLifetimeStatsQuery request, CancellationToken cancellationToken)
     {
-        var activities = await _activityRepository.GetByUserIdAndMonthAsync(request.UserId, request.Year, request.Month);
+        var activities = await _activityRepository.GetByUserIdAsync(request.UserId);
 
-        // InventoryService'e ulaşılamazsa boş dictionary döner - kategori isimleri null kalır,
-        // ama özetin geri kalanı yine de hesaplanıp döndürülür.
         var categoryNames = await _categoryLookupService.GetCategoryNamesAsync();
 
         var stats = BudgetStatsCalculator.Calculate(activities, categoryNames);
 
-        return new BudgetSummaryDto
+        return new LifetimeStatsDto
         {
-            Year = request.Year,
-            Month = request.Month,
             TotalSales = stats.totalSales,
             TotalManualExpenses = stats.totalManualExpenses,
             NetActivity = stats.netActivity,

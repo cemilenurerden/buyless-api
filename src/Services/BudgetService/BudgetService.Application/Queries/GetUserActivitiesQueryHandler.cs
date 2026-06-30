@@ -14,5 +14,5 @@ public class GetUserActivitiesQueryHandler : IRequestHandler<GetUserActivitiesQu
     }
 
     public async Task<List<BudgetActivity>> Handle(GetUserActivitiesQuery request, CancellationToken cancellationToken)
-        => await _activityRepository.GetByUserIdAsync(request.UserId);
+        => await _activityRepository.GetByUserIdAsync(request.UserId, request.Type);
 }
