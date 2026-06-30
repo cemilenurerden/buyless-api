@@ -47,6 +47,28 @@ public class BudgetController : ControllerBase
     }
 
     /// <summary>
+    /// Belirtilen ay için özet istatistik döndürür: toplam satış/harcama tutarı, net hareket,
+    /// hareket sayıları, en sık kullanılan platform ve kategori bazlı kırılım.
+    /// Kategori isimleri InventoryService'ten çekilir; o servise ulaşılamazsa
+    /// categoryName alanları null döner ama özetin geri kalanı yine de hesaplanır.
+    /// </summary>
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary([FromQuery] int year, [FromQuery] int month)
+    {
+        if (!TryGetUserId(out var userId))
+            return Unauthorized(new { message = "Token içinde geçerli bir kullanıcı kimliği bulunamadı." });
+
+        var summary = await _mediator.Send(new GetBudgetSummaryQuery
+        {
+            UserId = userId,
+            Year = year,
+            Month = month
+        });
+
+        return Ok(summary);
+    }
+
+    /// <summary>
     /// Kullanıcının elle girdiği bir harcamayı kaydeder (örn. "bu kazak için 250 TL verdim").
     /// İsteğe bağlı olarak bir InventoryService eşyasına (ItemId) bağlanabilir.
     /// </summary>

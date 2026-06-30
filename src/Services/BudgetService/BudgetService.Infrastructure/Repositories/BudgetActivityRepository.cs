@@ -23,6 +23,14 @@ public class BudgetActivityRepository : IBudgetActivityRepository
             .OrderByDescending(a => a.OccurredAt)
             .ToListAsync();
 
+    public async Task<List<BudgetActivity>> GetByUserIdAndMonthAsync(Guid userId, int year, int month)
+        => await _context.BudgetActivities
+            .Where(a => a.UserId == userId
+                        && a.OccurredAt.Year == year
+                        && a.OccurredAt.Month == month)
+            .OrderByDescending(a => a.OccurredAt)
+            .ToListAsync();
+
     public async Task AddAsync(BudgetActivity activity)
     {
         await _context.BudgetActivities.AddAsync(activity);

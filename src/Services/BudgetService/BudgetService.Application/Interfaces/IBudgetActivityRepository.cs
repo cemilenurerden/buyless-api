@@ -6,5 +6,6 @@ public interface IBudgetActivityRepository
 {
     Task<BudgetActivity?> GetByIdAsync(Guid id);
     Task<List<BudgetActivity>> GetByUserIdAsync(Guid userId);
+    Task<List<BudgetActivity>> GetByUserIdAndMonthAsync(Guid userId, int year, int month);
     Task AddAsync(BudgetActivity activity);
 }
