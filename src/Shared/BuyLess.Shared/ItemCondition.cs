@@ -1,4 +1,4 @@
-﻿namespace InventoryService.Domain;
+﻿namespace BuyLess.Shared;
 
 public enum ItemCondition
 {

@@ -1,4 +1,5 @@
 ﻿namespace InventoryService.Domain;
+using BuyLess.Shared;
 
 public class Item
 {
