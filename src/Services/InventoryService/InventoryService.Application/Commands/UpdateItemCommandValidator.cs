@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using InventoryService.Application.Interfaces;
 using InventoryService.Domain;
+using BuyLess.Shared;
 
 namespace InventoryService.Application.Commands;
 

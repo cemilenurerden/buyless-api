@@ -1,6 +1,7 @@
 ﻿using InventoryService.Application.Interfaces;
 using InventoryService.Domain;
 using MediatR;
+using BuyLess.Shared;
 
 namespace InventoryService.Application.Commands;
 
