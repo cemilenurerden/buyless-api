@@ -37,7 +37,8 @@ builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 // --- InventoryService Client ---
 builder.Services.AddHttpClient<IInventoryServiceClient, InventoryServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5002/");
+    client.BaseAddress = new Uri(
+    builder.Configuration["InventoryService:BaseUrl"] ?? "http://localhost:5002/");
 });
 
 // --- JWT Authentication ---

@@ -2,6 +2,7 @@
 
   postgres:
     image: postgres:16
+    container_name: buyless-postgres
     environment:
       POSTGRES_USER: buyless
       POSTGRES_PASSWORD: buyless123
@@ -9,98 +10,163 @@
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - buyless-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buyless"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+  # Redis ve RabbitMQ - ileride NotificationService ve event-driven mimari için
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: buyless
-      RABBITMQ_DEFAULT_PASS: buyless123
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
 
   auth-service:
     build:
       context: .
-      dockerfile: src/Services/AuthService/AuthService.API/Dockerfile
+      dockerfile: src/Services/AuthService/Dockerfile
+    container_name: buyless-auth
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=buyless_auth;Username=buyless;Password=buyless123
+      - Jwt__Key=BuyLessSuperSecretKeyForJwtTokenGeneration2026!
+      - Jwt__Issuer=BuyLessAuthService
+      - Jwt__Audience=BuyLessClients
+      - Jwt__ExpiryMinutes=15
+      - Jwt__RefreshTokenExpiryDays=7
     ports:
       - "5001:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_auth;Username=buyless;Password=buyless123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - buyless-network
 
   inventory-service:
     build:
       context: .
-      dockerfile: src/Services/InventoryService/InventoryService.API/Dockerfile
+      dockerfile: src/Services/InventoryService/Dockerfile
+    container_name: buyless-inventory
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=buyless_inventory;Username=buyless;Password=buyless123
+      - Jwt__Key=BuyLessSuperSecretKeyForJwtTokenGeneration2026!
+      - Jwt__Issuer=BuyLessAuthService
+      - Jwt__Audience=BuyLessClients
+      - BudgetService__BaseUrl=http://budget-service:8080/
     ports:
       - "5002:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_inventory;Username=buyless;Password=buyless123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - buyless-network
 
   budget-service:
     build:
       context: .
-      dockerfile: src/Services/BudgetService/BudgetService.API/Dockerfile
+      dockerfile: src/Services/BudgetService/Dockerfile
+    container_name: buyless-budget
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=buyless_budget;Username=buyless;Password=buyless123
+      - Jwt__Key=BuyLessSuperSecretKeyForJwtTokenGeneration2026!
+      - Jwt__Issuer=BuyLessAuthService
+      - Jwt__Audience=BuyLessClients
+      - InventoryService__BaseUrl=http://inventory-service:8080/
     ports:
       - "5003:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_budget;Username=buyless;Password=buyless123
-
-  donation-service:
-    build:
-      context: .
-      dockerfile: src/Services/DonationService/DonationService.API/Dockerfile
-    ports:
-      - "5004:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_donation;Username=buyless;Password=buyless123
-
-  reward-service:
-    build:
-      context: .
-      dockerfile: src/Services/RewardService/RewardService.API/Dockerfile
-    ports:
-      - "5005:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_reward;Username=buyless;Password=buyless123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - buyless-network
 
   marketplace-service:
     build:
       context: .
-      dockerfile: src/Services/MarketplaceService/MarketplaceService.API/Dockerfile
-    ports:
-      - "5006:8080"
+      dockerfile: src/Services/MarketplaceService/Dockerfile
+    container_name: buyless-marketplace
     environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_marketplace;Username=buyless;Password=buyless123
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=buyless_marketplace;Username=buyless;Password=buyless123
+      - Jwt__Key=BuyLessSuperSecretKeyForJwtTokenGeneration2026!
+      - Jwt__Issuer=BuyLessAuthService
+      - Jwt__Audience=BuyLessClients
+      - Cloudinary__CloudName=da940h4r3
+      - Cloudinary__ApiKey=461933696981572
+      - Cloudinary__ApiSecret=${CLOUDINARY_API_SECRET}
+      - InventoryService__BaseUrl=http://inventory-service:8080/
+    ports:
+      - "5004:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+    networks:
+      - buyless-network
 
-  notification-service:
-    build:
-      context: .
-      dockerfile: src/Services/NotificationService/NotificationService.API/Dockerfile
-    ports:
-      - "5007:8080"
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=buyless_notification;Username=buyless;Password=buyless123
+  # Henüz yazılmamış servisler - ileride açılacak
+  # donation-service:
+  #   build:
+  #     context: .
+  #     dockerfile: src/Services/DonationService/Dockerfile
+  #   ports:
+  #     - "5005:8080"
+
+  # reward-service:
+  #   build:
+  #     context: .
+  #     dockerfile: src/Services/RewardService/Dockerfile
+  #   ports:
+  #     - "5006:8080"
+
+  # notification-service:
+  #   build:
+  #     context: .
+  #     dockerfile: src/Services/NotificationService/Dockerfile
+  #   ports:
+  #     - "5007:8080"
 
   api-gateway:
     build:
       context: .
       dockerfile: src/ApiGateway/BuyLess.ApiGateway/Dockerfile
+    container_name: buyless-gateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ReverseProxy__Clusters__auth-cluster__Destinations__auth-destination__Address=http://auth-service:8080/
+      - ReverseProxy__Clusters__inventory-cluster__Destinations__inventory-destination__Address=http://inventory-service:8080/
+      - ReverseProxy__Clusters__budget-cluster__Destinations__budget-destination__Address=http://budget-service:8080/
+      - ReverseProxy__Clusters__marketplace-cluster__Destinations__marketplace-destination__Address=http://marketplace-service:8080/
     ports:
       - "5000:8080"
     depends_on:
       - auth-service
       - inventory-service
       - budget-service
-      - donation-service
-      - reward-service
       - marketplace-service
-      - notification-service
+    networks:
+      - buyless-network
 
 volumes:
   postgres_data:
+
+networks:
+  buyless-network:
+    driver: bridge
