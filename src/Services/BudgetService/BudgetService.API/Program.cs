@@ -34,7 +34,8 @@ builder.Services.AddScoped<IBudgetActivityRepository, BudgetActivityRepository>(
 // --- InventoryService Client (kategori isimleri için) ---
 builder.Services.AddHttpClient<ICategoryLookupService, CategoryLookupService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5002/");
+    client.BaseAddress = new Uri(
+    builder.Configuration["InventoryService:BaseUrl"] ?? "http://localhost:5002/");
 });
 
 // --- JWT Authentication ---

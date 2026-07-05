@@ -40,7 +40,8 @@ builder.Services.AddScoped<IBarcodeProductCacheRepository, BarcodeProductCacheRe
 // --- BudgetService Client (servisler arasý iletiþim) ---
 builder.Services.AddHttpClient<IBudgetServiceClient, BudgetServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5003/");
+    client.BaseAddress = new Uri(
+    builder.Configuration["BudgetService:BaseUrl"] ?? "http://localhost:5003/");
 });
 
 
