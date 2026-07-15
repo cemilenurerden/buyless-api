@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<Offer> Offers => Set<Offer>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<SellerReview> SellerReviews => Set<SellerReview>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -44,6 +46,8 @@ public class AppDbContext : DbContext
             // _images backing field üzerinden Images koleksiyonu
             entity.Navigation(l => l.Images)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            
         });
 
         // --- ListingImage ---
@@ -66,8 +70,8 @@ public class AppDbContext : DbContext
             entity.Property(o => o.Message).HasMaxLength(1000);
             entity.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
 
-            entity.HasOne<Listing>()
-                .WithMany()
+            entity.HasOne(o => o.Listing)
+                .WithMany(l => l.Offers)
                 .HasForeignKey(o => o.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -82,10 +86,11 @@ public class AppDbContext : DbContext
             entity.Property(o => o.ShippingAddress).HasMaxLength(500);
             entity.Property(o => o.TrackingNumber).HasMaxLength(100);
 
-            entity.HasOne<Listing>()
-                .WithMany()
+            entity.HasOne(o => o.Listing)
+                .WithMany(l => l.Orders)
                 .HasForeignKey(o => o.ListingId)
                 .OnDelete(DeleteBehavior.Restrict);
+
         });
 
         // --- Payment (placeholder) ---
@@ -98,9 +103,35 @@ public class AppDbContext : DbContext
             entity.Property(p => p.IyzicoPaymentId).HasMaxLength(200);
             entity.Property(p => p.IyzicoToken).HasMaxLength(500);
 
-            entity.HasOne<Order>()
+            entity.HasOne(p => p.Order)
+                .WithOne(o => o.Payment)
+                .HasForeignKey<Payment>(p => p.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+                    });
+
+
+        // --- SellerReview ---
+        modelBuilder.Entity<SellerReview>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Rating).IsRequired();
+            entity.Property(r => r.Comment).HasMaxLength(1000);
+
+            entity.HasOne(r => r.Order)
+                .WithOne(o => o.Review)
+                .HasForeignKey<SellerReview>(r => r.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Message ---
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Content).IsRequired().HasMaxLength(2000);
+
+            entity.HasOne(m => m.Listing)
                 .WithMany()
-                .HasForeignKey(p => p.OrderId)
+                .HasForeignKey(m => m.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

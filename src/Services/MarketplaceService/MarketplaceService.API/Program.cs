@@ -30,6 +30,8 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 builder.Services.AddScoped<IListingRepository, ListingRepository>();
 builder.Services.AddScoped<IOfferRepository, OfferRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ISellerReviewRepository, SellerReviewRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 // --- Cloudinary ---
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -83,6 +85,15 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Uygulama baþlarken bekleyen migration'larý otomatik uygula
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
+
 
 if (app.Environment.IsDevelopment())
 {

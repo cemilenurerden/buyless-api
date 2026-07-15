@@ -3,6 +3,7 @@ using System;
 using MarketplaceService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MarketplaceService.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713223952_AddNavigationProperties")]
+    partial class AddNavigationProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,39 +103,6 @@ namespace MarketplaceService.Infrastructure.Migrations
                     b.HasIndex("ListingId");
 
                     b.ToTable("ListingImages");
-                });
-
-            modelBuilder.Entity("MarketplaceService.Domain.Message", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ReceiverId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId");
-
-                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("MarketplaceService.Domain.Offer", b =>
@@ -268,54 +238,10 @@ namespace MarketplaceService.Infrastructure.Migrations
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("MarketplaceService.Domain.SellerReview", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ReviewerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId")
-                        .IsUnique();
-
-                    b.ToTable("SellerReviews");
-                });
-
             modelBuilder.Entity("MarketplaceService.Domain.ListingImage", b =>
                 {
                     b.HasOne("MarketplaceService.Domain.Listing", "Listing")
                         .WithMany("Images")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("MarketplaceService.Domain.Message", b =>
-                {
-                    b.HasOne("MarketplaceService.Domain.Listing", "Listing")
-                        .WithMany()
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -356,17 +282,6 @@ namespace MarketplaceService.Infrastructure.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("MarketplaceService.Domain.SellerReview", b =>
-                {
-                    b.HasOne("MarketplaceService.Domain.Order", "Order")
-                        .WithOne("Review")
-                        .HasForeignKey("MarketplaceService.Domain.SellerReview", "OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("MarketplaceService.Domain.Listing", b =>
                 {
                     b.Navigation("Images");
@@ -379,8 +294,6 @@ namespace MarketplaceService.Infrastructure.Migrations
             modelBuilder.Entity("MarketplaceService.Domain.Order", b =>
                 {
                     b.Navigation("Payment");
-
-                    b.Navigation("Review");
                 });
 #pragma warning restore 612, 618
         }
