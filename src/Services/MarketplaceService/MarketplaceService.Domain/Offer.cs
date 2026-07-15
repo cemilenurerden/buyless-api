@@ -11,6 +11,8 @@ public class Offer
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
+    public Listing Listing { get; private set; } = null!;
+
     private Offer() { }
 
     public Offer(Guid listingId, Guid buyerId, decimal offeredPrice, string? message = null)

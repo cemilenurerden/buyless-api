@@ -14,6 +14,12 @@ public class Order
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
+    // Navigation properties
+    public Payment? Payment { get; private set; }
+    public Listing Listing { get; private set; } = null!;
+    public SellerReview? Review { get; private set; }
+
+
     private Order() { }
 
     public Order(Guid listingId, Guid buyerId, Guid sellerId, decimal amount, string currency = "TRY")

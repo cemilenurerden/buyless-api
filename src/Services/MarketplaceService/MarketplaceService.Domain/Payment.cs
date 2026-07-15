@@ -14,6 +14,7 @@ public class Payment
     public PaymentMethod Method { get; private set; }
     public DateTime? PaidAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public Order Order { get; private set; } = null!;
 
     private Payment() { }
 

@@ -19,6 +19,8 @@ public class Listing
 
     private readonly List<ListingImage> _images = new();
     public IReadOnlyCollection<ListingImage> Images => _images.AsReadOnly();
+    public List<Order> Orders { get; private set; } = new();
+    public List<Offer> Offers { get; private set; } = new();
 
     private Listing() { }
 
